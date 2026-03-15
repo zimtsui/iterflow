@@ -1,0 +1,19 @@
+{
+  "name": "@zimtsui/iterflow",
+  "exports": "./build/exports.js",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zimtsui/iterflow.git"
+  },
+  "scripts": {
+    "build": "tsc -b ./src/tsconfig.json",
+    "clean": "rm -rf ./build",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "author": "Zim",
+  "license": "MIT",
+  "peerDependencies": {
+    "@opentelemetry/api": "^1.9.0"
+  }
+}
