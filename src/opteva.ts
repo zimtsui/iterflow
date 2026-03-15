@@ -10,19 +10,19 @@ export class Rejection {
  * @throws outgoing {@link Opposition}
  * @throws incoming {@link Rejection}
  */
-export interface Optimize extends AsyncGenerator<string, never, void> {}
+export interface Optimizing extends AsyncGenerator<string, never, void> {}
 
 /**
  * @throws outgoing {@link Rejection}
  * @throws incoming {@link Opposition}
  */
-export interface Evaluate extends AsyncGenerator<void, never, string> {}
+export interface Evaluating extends AsyncGenerator<void, never, string> {}
 
 
 /**
  * @throws {@link Rejection}
  */
-export async function opteva(opt: Optimize, eva: Evaluate): Promise<void> {
+export async function opteva(opt: Optimizing, eva: Evaluating): Promise<void> {
     const draft = await opt.next().then(r => r.value);;
     try {
         return await eva.next(draft).then(r => r.value);
