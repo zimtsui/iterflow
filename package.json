@@ -18,5 +18,6 @@
   },
   "devDependencies": {
     "openai": "^6.29.0"
-  }
+  },
+  "version": "0.0.1"
 }
