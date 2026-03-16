@@ -13,7 +13,7 @@ import { Opposition, Optimization, Rejection } from '@zimtsui/iterflow';
 import OpenAI from 'openai';
 declare const openai: OpenAI;
 
-export async function *optimize(problem: string): Optimization {
+export async function *optimize(problem: string): Optimization<string> {
     const messages: OpenAI.ChatCompletionMessageParam[] = [
         {
             role: 'system',
@@ -48,7 +48,7 @@ import { Evaluation, Rejection, Opposition } from '@zimtsui/iterflow';
 import OpenAI from 'openai';
 declare const openai: OpenAI;
 
-export async function *evaluate(problem: string): Evaluation {
+export async function *evaluate(problem: string): Evaluation<string> {
     const messages: OpenAI.ChatCompletionMessageParam[] = [
         {
             role: 'system',

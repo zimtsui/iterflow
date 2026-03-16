@@ -8,14 +8,14 @@ export class Rejection {
 }
 
 
-export interface Optimization extends AsyncGenerator<string, never, never> {}
+export interface Optimization<draft> extends AsyncGenerator<draft, never, never> {}
 export namespace Optimization {
     /**
      * @throws outgoing {@link Opposition}
      * @throws incoming {@link Rejection}
      */
-    export interface Initialized extends AsyncGenerator<string, never, void> {}
-    export async function *init(raw0: Optimization): Optimization.Initialized {
+    export interface Initialized<draft> extends AsyncGenerator<draft, never, void> {}
+    export async function *init<draft>(raw0: Optimization<draft>): Optimization.Initialized<draft> {
         await using raw = raw0;
         let draft = await raw.next().then(r => r.value);
         let output = Promise.resolve(draft);
@@ -40,10 +40,10 @@ export namespace Optimization {
 /**
  * @throws {@link Rejection}
  */
-export interface Evaluation extends AsyncGenerator<void, never, string> {}
+export interface Evaluation<draft> extends AsyncGenerator<void, never, draft> {}
 export namespace Evaluation {
-    export interface Initialized extends AsyncGenerator<void, never, string> {}
-    export async function init(raw: Evaluation): Promise<Evaluation.Initialized> {
+    export interface Initialized<draft> extends AsyncGenerator<void, never, draft> {}
+    export async function init<draft>(raw: Evaluation<draft>): Promise<Evaluation.Initialized<draft>> {
         await raw.next();
         return raw;
     }
@@ -52,7 +52,7 @@ export namespace Evaluation {
 /**
  * @throws {@link Rejection}
  */
-export async function opteva(opt: Optimization.Initialized, eva: Evaluation.Initialized): Promise<void> {
+export async function opteva<draft>(opt: Optimization.Initialized<draft>, eva: Evaluation.Initialized<draft>): Promise<void> {
     const draft = await opt.next().then(r => r.value);
     try {
         return await eva.next(draft).then(r => r.value);
