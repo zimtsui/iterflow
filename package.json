@@ -1,9 +1,6 @@
 {
   "name": "@zimtsui/iterflow",
-  "exports": {
-    ".": "./build/exports.js",
-    "./pipe": "./build/pipe.js"
-  },
+  "exports": "./build/exports.js",
   "type": "module",
   "repository": {
     "type": "git",

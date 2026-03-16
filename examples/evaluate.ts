@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 declare const openai: OpenAI;
 
 export async function *evaluate(problem: string): Evaluation<string> {
+    let draft = yield Promise.reject(new Evaluation.FirstYield());
     const messages: OpenAI.ChatCompletionMessageParam[] = [
         {
             role: 'system',
@@ -11,16 +12,17 @@ export async function *evaluate(problem: string): Evaluation<string> {
                 'Print only `ACCEPT` if it is correct.',
             ].join(' '),
         },
-        { role: 'user', content: `Problem: ${problem}\n\nAnswer: ${yield}` },
+        { role: 'user', content: `Problem: ${problem}\n\nAnswer: ${draft}` },
     ];
     for (;;) try {
         const completion = await openai.chat.completions.create({ model: 'gpt-4o', messages });
         messages.push(completion.choices[0]!.message);
         if (completion.choices[0]!.message.content === 'ACCEPT') {}
         else throw new Rejection(completion.choices[0]!.message.content!);
+        draft = yield draft;
         messages.push({
             role: 'user',
-            content: `The answer is revised: ${yield}\n\nPlease examine it again.`,
+            content: `The answer is revised: ${draft}\n\nPlease examine it again.`,
         });
     } catch (e) {
         if (e instanceof Rejection) {} else throw e;

@@ -1,35 +1,132 @@
+import { Rejection, Opposition } from './exceptions.ts';
 
 
-export class Opposition {
-    public constructor(public message: string) {}
-}
-export class Rejection {
-    public constructor(public message: string) {}
-}
 
-
-export interface Optimization<draft> extends AsyncGenerator<draft, never, never> {}
-export namespace Optimization {
+export interface Optimization<draft> extends AsyncGenerator<draft, never, never> {
+    next(...values: [] | [never]): Promise<IteratorResult<draft, never>>;
     /**
-     * @throws outgoing {@link Opposition}
-     * @throws incoming {@link Rejection}
+     * @throws {@link Opposition}
      */
-    export interface Initialized<draft> extends AsyncGenerator<draft, never, void> {}
-    export async function *init<draft>(raw0: Optimization<draft>): Optimization.Initialized<draft> {
-        await using raw = raw0;
-        let draft = await raw.next().then(r => r.value);
-        let output = Promise.resolve(draft);
-        for (;;) try {
-            yield output;
-            output = Promise.resolve(draft);
-        } catch (e) {
-            if (e instanceof Rejection) {} else throw e;
-            try {
-                draft = await raw.throw(e).then(r => r.value);
+    throw(e: Rejection): Promise<IteratorResult<draft, never>>;
+}
+export namespace Optimization {
+    export interface Cache<draft> extends AsyncGenerator<draft, never, void> {
+        next(...values: [] | [void]): Promise<IteratorResult<draft, never>>;
+        /**
+        * @throws {@link Opposition}
+        */
+        throw(e: Rejection): Promise<IteratorResult<draft, never>>;
+    }
+    export namespace Cache {
+        export async function *from<draft>(raw0: Optimization<draft>): Optimization.Cache<draft> {
+            await using raw = raw0;
+            let draft = await raw.next().then(r => r.value);
+            let output = Promise.resolve(draft);
+            for (;;) try {
+                yield output;
                 output = Promise.resolve(draft);
             } catch (e) {
-                if (e instanceof Opposition) {} else throw e;
-                output = Promise.reject(e);
+                if (e instanceof Rejection) {} else throw e;
+                try {
+                    draft = await raw.throw(e).then(r => r.value);
+                    output = Promise.resolve(draft);
+                } catch (e) {
+                    if (e instanceof Opposition) {} else throw e;
+                    output = Promise.reject(e);
+                }
+            }
+        }
+    }
+
+    export interface Snapshot<draft> extends AsyncGenerator<draft, never, void> {
+        next(...values: [] | [void]): Promise<IteratorResult<draft, never>>;
+        /**
+        * @throws {@link Rejection}
+        */
+        throw(e: Rejection): Promise<never>;
+    }
+    export namespace Snapshot {
+        export function from<draft>(opt: Optimization.Cache<draft>): Optimization.Snapshot<draft> {
+            return {
+                next(...values) {
+                    return opt.next(...values);
+                },
+                async throw(e: Rejection) {
+                    await opt.throw(e).then(r => r.value);
+                    throw e;
+                },
+                return(value) {
+                    return opt.return(value);
+                },
+                [Symbol.asyncIterator]() {
+                    return this;
+                },
+                [Symbol.asyncDispose]() {
+                    return opt[Symbol.asyncDispose]();
+                },
+            };
+        }
+        export function recover<input, output>(
+            opt: Optimization.Snapshot<input>,
+            draft: output,
+        ): Optimization.Snapshot<output> {
+            return {
+                async next(...values) {
+                    return { value: draft, done: false };
+                },
+                throw(e) {
+                    return opt.throw(e);
+                },
+                async return(value) {
+                    await opt.return(undefined as any);
+                    return { value: await value, done: true };
+                },
+                [Symbol.asyncIterator]() {
+                    return this;
+                },
+                [Symbol.asyncDispose]() {
+                    return opt[Symbol.asyncDispose]();
+                },
+            };
+        }
+    }
+}
+
+
+
+export interface Evaluation<input, output = input> extends AsyncGenerator<output, never, input> {
+    /**
+     * @throws {@link FirstYield}
+     */
+    next(...values: []): Promise<IteratorResult<output, never>>;
+    /**
+     * @throws {@link Rejection}
+     */
+    next(...values: [input]): Promise<IteratorResult<output, never>>;
+    /**
+     * @throws {@link Rejection}
+     */
+    throw(e: Opposition): Promise<IteratorResult<output, never>>;
+}
+export namespace Evaluation {
+    export class FirstYield {}
+    export interface Initialized<input, output = input> extends AsyncGenerator<output, never, input> {
+        /**
+         * @throws {@link Rejection}
+         */
+        next(...values: [input]): Promise<IteratorResult<output, never>>;
+        /**
+         * @throws {@link Rejection}
+         */
+        throw(e: Opposition): Promise<IteratorResult<output, never>>;
+    }
+    export namespace Initialized {
+        export async function from<input, output = input>(eva: Evaluation<input, output>): Promise<Evaluation.Initialized<input, output>> {
+            try {
+                throw new Error(undefined, { cause: await eva.next() });
+            } catch (e) {
+                if (e instanceof Evaluation.FirstYield) return eva;
+                else throw e;
             }
         }
     }
@@ -40,30 +137,23 @@ export namespace Optimization {
 /**
  * @throws {@link Rejection}
  */
-export interface Evaluation<draft> extends AsyncGenerator<void, never, draft> {}
-export namespace Evaluation {
-    export interface Initialized<draft> extends AsyncGenerator<void, never, draft> {}
-    export async function init<draft>(raw: Evaluation<draft>): Promise<Evaluation.Initialized<draft>> {
-        await raw.next();
-        return raw;
-    }
-}
-
-/**
- * @throws {@link Rejection}
- */
-export async function opteva<draft>(opt: Optimization.Initialized<draft>, eva: Evaluation.Initialized<draft>): Promise<void> {
+export async function opteva<input, output>(
+    opt: Optimization.Snapshot<input>,
+    eva: Evaluation.Initialized<input, output>,
+): Promise<Optimization.Snapshot<output>> {
     const draft = await opt.next().then(r => r.value);
     try {
-        return await eva.next(draft).then(r => r.value);
+        const output = await eva.next(draft).then(r => r.value);
+        return Optimization.Snapshot.recover(opt, output);
     } catch (e) {
         if (e instanceof Rejection) {} else throw e;
         for (let rejection = e;;) try {
-            throw await opt.throw(rejection).then(() => e);
+            await opt.throw(rejection); // Either Opposition or Rejection thrown outgoing from opt.
         } catch (e) {
             if (e instanceof Opposition) {} else throw e;
             try {
-                return await eva.throw(e).then(r => r.value);
+                const output = await eva.throw(e).then(r => r.value);
+                return Optimization.Snapshot.recover(opt, output);
             } catch (e) {
                 if (e instanceof Rejection) {} else throw e;
                 rejection = e;
