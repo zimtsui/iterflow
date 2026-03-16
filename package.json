@@ -15,5 +15,8 @@
   "license": "MIT",
   "peerDependencies": {
     "@opentelemetry/api": "^1.9.0"
+  },
+  "devDependencies": {
+    "openai": "^6.29.0"
   }
 }
