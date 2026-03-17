@@ -18,6 +18,9 @@ export namespace Optimization {
         throw(e: Rejection): Promise<IteratorResult<draft, never>>;
     }
     export namespace Cache {
+        /**
+         * @param raw0 Ownership transferred.
+         */
         export async function *from<draft>(raw0: Optimization<draft>): Optimization.Cache<draft> {
             await using raw = raw0;
             let draft = await raw.next().then(r => r.value);
@@ -46,6 +49,9 @@ export namespace Optimization {
         throw(e: Rejection): Promise<never>;
     }
     export namespace Snapshot {
+        /**
+         * @param opt Ownership NOT transferred.
+         */
         export function from<draft>(opt: Optimization.Cache<draft>): Optimization.Snapshot<draft> {
             return {
                 next(...values) {
@@ -61,11 +67,12 @@ export namespace Optimization {
                 [Symbol.asyncIterator]() {
                     return this;
                 },
-                [Symbol.asyncDispose]() {
-                    return opt[Symbol.asyncDispose]();
-                },
+                async [Symbol.asyncDispose]() {},
             };
         }
+        /**
+         * @param opt Ownership NOT transferred.
+         */
         export function recover<input, output>(
             opt: Optimization.Snapshot<input>,
             draft: output,
@@ -84,9 +91,7 @@ export namespace Optimization {
                 [Symbol.asyncIterator]() {
                     return this;
                 },
-                [Symbol.asyncDispose]() {
-                    return opt[Symbol.asyncDispose]();
-                },
+                async [Symbol.asyncDispose]() {},
             };
         }
     }
@@ -121,6 +126,9 @@ export namespace Evaluation {
         throw(e: Opposition): Promise<IteratorResult<output, never>>;
     }
     export namespace Initialized {
+        /**
+         * @param eva Ownership transferred.
+         */
         export async function from<input, output = input>(eva: Evaluation<input, output>): Promise<Evaluation.Initialized<input, output>> {
             try {
                 throw new Error(undefined, { cause: await eva.next() });
