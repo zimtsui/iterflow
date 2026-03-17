@@ -173,6 +173,8 @@ export namespace Evaluation {
             if (values.length) {
                 const result = await raw0.next(...values);
                 if (result.done) throw new Error(undefined, { cause: result });
+                const output = result.value;
+                if (output instanceof Evaluation.FirstYield) throw new Error(undefined, { cause: output });
                 return { value: result.value, done: false };
             } else {
                 const result = await raw0.next();
