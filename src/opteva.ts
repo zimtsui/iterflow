@@ -32,7 +32,7 @@ export namespace Optimization {
                 return this;
             },
             [Symbol.asyncDispose]() {
-                return raw0?.[Symbol.asyncDispose]();
+                return raw0[Symbol.asyncDispose]?.();
             },
         };
     }
@@ -67,7 +67,7 @@ export namespace Optimization {
                     return this;
                 },
                 [Symbol.asyncDispose]() {
-                    return raw0?.[Symbol.asyncDispose]();
+                    return raw0[Symbol.asyncDispose]?.();
                 },
             };
         }
@@ -204,7 +204,7 @@ export namespace Evaluation {
                 return this;
             },
             [Symbol.asyncDispose]() {
-                return raw0?.[Symbol.asyncDispose]();
+                return raw0[Symbol.asyncDispose]?.();
             },
         };
     }
