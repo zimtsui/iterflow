@@ -6,6 +6,9 @@
     "type": "git",
     "url": "git+https://github.com/zimtsui/iterflow.git"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsc -b ./src/tsconfig.json",
     "clean": "rm -rf ./build",
