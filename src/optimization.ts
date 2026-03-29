@@ -46,18 +46,26 @@ export namespace Optimization {
             await this.it[Symbol.asyncDispose]?.();
         }
 
+        /**
+         * @param optgen Ownership transferred.
+         */
         protected static async *iterate<draft, rejection, opposition>(
             optgen: Optimization.Generator<draft, rejection, opposition>,
         ): AsyncGenerator<Draft<draft> | Opposition<opposition>, never, Rejection<rejection> | void> {
-            let output = await optgen.next().then(r => r.value);
-            if (output instanceof Draft) {} else throw new Error();
-            let draft = output;
-            for (;;) {
-                const input: Rejection<rejection> | void = yield output;
-                if (input instanceof Rejection)
-                    output = await optgen.next(input).then(r => r.value);
-                else
-                    output = draft;
+            try {
+                let output = await optgen.next().then(r => r.value);
+                if (output instanceof Draft) {} else throw new Error();
+                let draft = output;
+                for (;;) {
+                    const input: Rejection<rejection> | void = yield output;
+                    if (input instanceof Rejection) {
+                        output = await optgen.next(input).then(r => r.value);
+                        if (output instanceof Draft) draft = output;
+                    } else
+                        output = draft;
+                }
+            } finally {
+                await optgen[Symbol.asyncDispose]?.();
             }
         }
     }

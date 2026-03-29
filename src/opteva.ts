@@ -13,10 +13,11 @@ export async function opteva<draft, rejection, opposition>(
     eva: Evaluation<draft, rejection, opposition>,
 ): Promise<void> {
     let draft = await opt.repeat();
-    for (let rejection = await eva.submit(draft); rejection instanceof Rejection;) {
+    for (let evaoutput = await eva.submit(draft); evaoutput instanceof Rejection;) {
+        const rejection = evaoutput;
         const optoutput = await opt.reject(rejection);
         if (optoutput instanceof Opposition) {
-            rejection = await eva.oppose(optoutput);
+            evaoutput = await eva.oppose(optoutput);
         } else if (optoutput instanceof Draft) {
             throw rejection;
         }

@@ -16,7 +16,8 @@ export namespace Evaluation {
     export async function from<draft, rejection, opposition>(
         evagen: Evaluation.Generator<draft, rejection, opposition>,
     ): Promise<Evaluation<draft, rejection, opposition>> {
-        await evagen.next();
+        const first = await evagen.next().then(r => r.value);
+        if (first instanceof Rejection) throw new Error();
         return {
             async submit(draft: Draft<draft>): Promise<Rejection<rejection> | void> {
                 return await evagen.next(draft).then(r => r.value);
