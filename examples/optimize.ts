@@ -8,7 +8,8 @@ export async function *optimize(problem: string): Optimization.Generator<string,
             role: 'system',
             content: [
                 'Please solve math problems.',
-                'Your answer will be evaluated and the feedback will be provided if the answer is rejected.'
+                'Your answer will be evaluated and the feedback will be provided if the answer is rejected.',
+                'Output "OPPOSE" to insist your answer.'
             ].join(' ')
         },
         { role: 'user', content: problem },
@@ -21,7 +22,7 @@ export async function *optimize(problem: string): Optimization.Generator<string,
             : yield new Draft(completion.choices[0]!.message.content!);
         messages.push({
             role: 'user',
-            content: `Your answer is rejected: ${rejection.message}. Please revise your answer.`,
+            content: `Your answer is rejected: ${rejection.extract()}. Please revise your answer.`,
         });
     }
 }
