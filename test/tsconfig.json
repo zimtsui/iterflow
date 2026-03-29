@@ -1,28 +1,27 @@
 {
-	"compilerOptions": {
-		"target": "ES2022",
-		"module": "preserve",
-		"moduleDetection": "force",
-		"lib": ["esnext"],
-		"sourceMap": true,
-		"strict": true,
-		"experimentalDecorators": true,
-		"noUncheckedIndexedAccess": true,
-		"noUncheckedSideEffectImports": true,
-		"allowSyntheticDefaultImports": true,
-		"rewriteRelativeImportExtensions": true,
-		"allowJs": true,
-		"noFallthroughCasesInSwitch": true,
-		"noImplicitOverride": true,
-		"resolveJsonModule": true,
-		"verbatimModuleSyntax": true,
-		"checkJs": true,
-		"composite": true,
-		"skipLibCheck": true
-	},
-	"include": [
-		"./**/*"
-	],
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "preserve",
+        "moduleDetection": "force",
+        "lib": ["esnext"],
+        "types": [],
+        "sourceMap": true,
+        "experimentalDecorators": true,
+        "noUncheckedIndexedAccess": true,
+        "allowSyntheticDefaultImports": true,
+        "rewriteRelativeImportExtensions": true,
+        "allowJs": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitOverride": true,
+        "resolveJsonModule": true,
+        "checkJs": true,
+        "composite": true,
+        "rootDir": ".",
+        "skipLibCheck": true
+    },
+    "include": [
+        "./**/*",
+    ],
 	"references": [
 		{ "path": "../src/tsconfig.json" }
 	]
