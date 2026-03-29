@@ -9,7 +9,7 @@ import { Evaluation } from './evaluation.ts';
  * @throws {@link Rejection}
  */
 export async function opteva<draft, rejection, opposition>(
-    opt: Optimization<draft, rejection, opposition>,
+    opt: Optimization.View<draft, rejection, opposition>,
     eva: Evaluation<draft, rejection, opposition>,
 ): Promise<void> {
     let draft = await opt.repeat();

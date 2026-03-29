@@ -2,10 +2,9 @@ import { Draft, Rejection, Opposition } from './types.ts';
 
 
 
-export interface Optimization<in out draft, in out rejection, in out opposition> extends AsyncDisposable {
-    repeat(): Promise<Draft<draft>>;
-    reject(rejection: Rejection<rejection>): Promise<Draft<draft> | Opposition<opposition>>;
-}
+export interface Optimization<
+    in out draft, in out rejection, in out opposition,
+> extends AsyncDisposable, Optimization.View<draft, rejection, opposition> {}
 
 
 export namespace Optimization {
@@ -75,18 +74,15 @@ export namespace Optimization {
 
 
 
-    /**
-     * @param opt Ownership NOT transferred.
-     */
     export function map<draft, nextdraft, rejection, opposition>(
-        opt: Optimization<draft, rejection, opposition>,
+        optview: Optimization.View<draft, rejection, opposition>,
         f: (draft: draft) => Promise<nextdraft>,
-    ): Optimization<nextdraft, rejection, opposition> {
+    ): Optimization.View<nextdraft, rejection, opposition> {
         async function* nextoptgen(): Optimization.Generator<nextdraft, rejection, opposition> {
-            let nextoutput: Draft<nextdraft> | Opposition<opposition> = new Draft(await f(await opt.repeat().then(r => r.extract())));
+            let nextoutput: Draft<nextdraft> | Opposition<opposition> = new Draft(await f(await optview.repeat().then(r => r.extract())));
             for (;;) {
                 const rejection: Rejection<rejection> = yield nextoutput;
-                const output = await opt.reject(rejection);
+                const output = await optview.reject(rejection);
                 if (output instanceof Draft)
                     nextoutput = new Draft(await f(output.extract()));
                 else
@@ -97,4 +93,8 @@ export namespace Optimization {
     }
 
 
+    export interface View<in out draft, in out rejection, in out opposition> {
+        repeat(): Promise<Draft<draft>>;
+        reject(rejection: Rejection<rejection>): Promise<Draft<draft> | Opposition<opposition>>;
+    }
 }

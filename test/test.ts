@@ -125,7 +125,7 @@ test('Optimization.map keeps the last mapped draft across opposition', async t =
         t.is(draft.extract(), 'mapped:5');
         t.deepEqual(mappedInputs, [1, 5]);
     } finally {
-        await dispose(mapped, source);
+        await dispose(source);
     }
 });
 
@@ -197,11 +197,10 @@ test('multiple evaluators restart from the first evaluator after a later rejecti
         let finalDraft: Draft<string> | undefined;
 
         for (;;) {
-            let stringView: Optimization<string, string, string> | undefined;
             try {
                 const numberView = optimization;
                 await opteva(numberView, numberEvaluation);
-                stringView = Optimization.map(numberView, async draft => {
+                const stringView: Optimization.View<string, string, string> = Optimization.map(numberView, async draft => {
                     events.push(`map:${draft}`);
                     return `value:${draft}`;
                 });
@@ -210,9 +209,6 @@ test('multiple evaluators restart from the first evaluator after a later rejecti
                 break;
             } catch (e) {
                 if (e instanceof Rejection) {} else throw e;
-            } finally {
-                if (stringView)
-                    await stringView[Symbol.asyncDispose]();
             }
         }
 
