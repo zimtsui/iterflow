@@ -1,21 +1,20 @@
 import { Optimization, Evaluation, opteva, Rejection } from '@zimtsui/iterflow';
-import { optimize } from './optimize.ts';
-import { evaluate } from './evaluate.ts';
-const evaluate1: (problem: string) => Evaluation.Raw<string, string> = evaluate;
-declare const evaluate2: (problem: string) => Evaluation.Raw<string, number>;
-declare const evaluate3: (problem: string) => Evaluation.Raw<number, number>;
+declare function optimize(problem: string): Optimization.Generator<number, string, string>;
+declare function evaluateNumber(problem: string): Evaluation.Generator<number, string, string>;
+declare function stringifySolution(solution: number): Promise<string>;
+declare function evaluateString(problem: string): Evaluation.Generator<string, string, string>;
 
-export async function workflow(problem: string): Promise<number> {
-    await using optimization = Optimization.Cache.from(optimize(problem));
-    await using evaluation1 = await Evaluation.Initialized.from(evaluate1(problem));
-    await using evaluation2 = await Evaluation.Initialized.from(evaluate2(problem));
-    await using evaluation3 = await Evaluation.Initialized.from(evaluate3(problem));
+export async function workflow(problem: string): Promise<string> {
+    await using optimization = Optimization.from(optimize(problem));
+    await using numberEvaluation = await Evaluation.from(evaluateNumber(problem));
+    await using stringEvaluation = await Evaluation.from(evaluateString(problem));
     for (;;) try {
-        let snapshotString = Optimization.Snapshot.from(optimization);
-        snapshotString = await opteva(snapshotString, evaluation1);
-        let snapshotNumber = await opteva(snapshotString, evaluation2);
-        snapshotNumber = await opteva(snapshotNumber, evaluation3);
-        return await snapshotNumber.next().then(r => r.value);
+        const numberView = optimization;
+        await opteva(numberView, numberEvaluation);
+        const stringView = Optimization.map(numberView, stringifySolution);
+        await opteva(stringView, stringEvaluation);
+        const finalDraft = await stringView.repeat();
+        return finalDraft.extract();
     } catch (e) {
         if (e instanceof Rejection) {} else throw e;
     }

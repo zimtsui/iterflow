@@ -1,8 +1,8 @@
-import { Opposition, Optimization, Rejection } from '@zimtsui/iterflow';
+import { Optimization, Draft, Opposition } from '@zimtsui/iterflow';
 import OpenAI from 'openai';
 declare const openai: OpenAI;
 
-export async function *optimize(problem: string): Optimization.Raw<string> {
+export async function *optimize(problem: string): Optimization.Generator<string, string, string> {
     const messages: OpenAI.ChatCompletionMessageParam[] = [
         {
             role: 'system',
@@ -13,18 +13,15 @@ export async function *optimize(problem: string): Optimization.Raw<string> {
         },
         { role: 'user', content: problem },
     ];
-    for (;;) try {
+    for (;;) {
         const completion = await openai.chat.completions.create({ model: 'gpt-4o', messages });
         messages.push(completion.choices[0]!.message);
-        if (completion.choices[0]!.message.content! === 'OPPOSE')
-            return yield new Opposition('My answer is correct.');
-        else
-            return yield completion.choices[0]!.message.content!;
-    } catch (e) {
-        if (e instanceof Rejection) {} else throw e;
+        const rejection = completion.choices[0]!.message.content! === 'OPPOSE'
+            ? yield new Opposition('My answer is correct.')
+            : yield new Draft(completion.choices[0]!.message.content!);
         messages.push({
             role: 'user',
-            content: `Your answer is rejected: ${e.message}. Please revise your answer.`,
+            content: `Your answer is rejected: ${rejection.message}. Please revise your answer.`,
         });
     }
 }

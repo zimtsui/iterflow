@@ -21,6 +21,9 @@
 		"skipLibCheck": true
 	},
 	"include": [
-		"./**/*",
+		"./**/*"
 	],
+	"references": [
+		{ "path": "../src/tsconfig.json" }
+	]
 }

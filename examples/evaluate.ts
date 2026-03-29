@@ -1,9 +1,11 @@
-import { Evaluation, Rejection, Opposition } from '@zimtsui/iterflow';
+import { Evaluation, Draft, Rejection, Opposition } from '@zimtsui/iterflow';
 import OpenAI from 'openai';
 declare const openai: OpenAI;
 
-export async function *evaluate(problem: string): Evaluation.Raw<string> {
-    let draft = yield new Evaluation.FirstYield();
+export async function *evaluate(problem: string): Evaluation.Generator<string, string, string> {
+    let input = yield;
+    if (input instanceof Draft) {} else throw new Error();
+    let draft = input;
     const messages: OpenAI.ChatCompletionMessageParam[] = [
         {
             role: 'system',
@@ -12,22 +14,29 @@ export async function *evaluate(problem: string): Evaluation.Raw<string> {
                 'Print only `ACCEPT` if it is correct.',
             ].join(' '),
         },
-        { role: 'user', content: `Problem: ${problem}\n\nAnswer: ${draft}` },
+        { role: 'user', content: `Problem: ${problem}\n\nAnswer: ${draft.extract()}` },
     ];
-    for (;;) try {
+    for (;;) {
         const completion = await openai.chat.completions.create({ model: 'gpt-4o', messages });
         messages.push(completion.choices[0]!.message);
-        if (completion.choices[0]!.message.content === 'ACCEPT') draft = yield draft;
-        else draft = yield new Rejection(completion.choices[0]!.message.content!);
-        messages.push({
-            role: 'user',
-            content: `The answer is updated: ${draft}\n\nPlease examine it again.`,
-        });
-    } catch (e) {
-        if (e instanceof Opposition) {} else throw e;
-        messages.push({
-            role: 'user',
-            content: `Your rejection is opposed: ${e.message}\n\nPlease examine it again.`,
-        });
+        let input: Draft<string> | Opposition<string>;
+        if (completion.choices[0]!.message.content === 'ACCEPT')
+            input = yield;
+        else
+            input = yield new Rejection(completion.choices[0]!.message.content!);
+
+        if (input instanceof Draft)
+            messages.push({
+                role: 'user',
+                content: `The answer is updated: ${draft.extract()}\n\nPlease examine it again.`,
+            });
+        else if (input instanceof Opposition) {
+            const opposition = input;
+            messages.push({
+                role: 'user',
+                content: `Your rejection is opposed: ${opposition.extract()}\n\nPlease examine it again.`,
+            });
+        }
+        else throw new Error();
     }
 }
