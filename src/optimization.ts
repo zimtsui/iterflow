@@ -10,6 +10,9 @@ export interface Optimization<in out draft, in out rejection, in out opposition>
 
 export namespace Optimization {
 
+    /**
+     * First yield must be a draft.
+     */
     export type Generator<
         draft, rejection, opposition,
     > = AsyncGenerator<Draft<draft> | Opposition<opposition>, never, Rejection<rejection>>;

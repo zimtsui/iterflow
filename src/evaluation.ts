@@ -33,6 +33,9 @@ export namespace Evaluation {
         } satisfies Evaluation<draft, rejection, opposition>;
     }
 
+    /**
+     * First yield must be void.
+     */
     export type Generator<
         draft, rejection, opposition,
     > = AsyncGenerator<Rejection<rejection> | void, never, Draft<draft> | Opposition<opposition>>;
