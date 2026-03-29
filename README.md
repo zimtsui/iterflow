@@ -9,33 +9,31 @@ Iterflow is an AI workflow orchestrator specifically designed for Optimizer-Eval
 ### Optimizer
 
 ```ts
-import { Opposition, Optimization, Rejection } from '@zimtsui/iterflow';
+import { Optimization, Draft, Opposition } from '@zimtsui/iterflow';
 import OpenAI from 'openai';
 declare const openai: OpenAI;
 
-export async function *optimize(problem: string): Optimization.Raw<string> {
+export async function *optimize(problem: string): Optimization.Generator<string, string, string> {
     const messages: OpenAI.ChatCompletionMessageParam[] = [
         {
             role: 'system',
             content: [
                 'Please solve math problems.',
-                'Your answer will be evaluated and the feedback will be provided if the answer is rejected.'
+                'Your answer will be evaluated and the feedback will be provided if the answer is rejected.',
+                'Output "OPPOSE" to insist your answer.'
             ].join(' ')
         },
         { role: 'user', content: problem },
     ];
-    for (;;) try {
+    for (;;) {
         const completion = await openai.chat.completions.create({ model: 'gpt-4o', messages });
         messages.push(completion.choices[0]!.message);
-        if (completion.choices[0]!.message.content! === 'OPPOSE')
-            return yield new Opposition('My answer is correct.');
-        else
-            return yield completion.choices[0]!.message.content!;
-    } catch (e) {
-        if (e instanceof Rejection) {} else throw e;
+        const rejection = completion.choices[0]!.message.content! === 'OPPOSE'
+            ? yield new Opposition('My answer is correct.')
+            : yield new Draft(completion.choices[0]!.message.content!);
         messages.push({
             role: 'user',
-            content: `Your answer is rejected: ${e.message}. Please revise your answer.`,
+            content: `Your answer is rejected: ${rejection.extract()}. Please revise your answer.`,
         });
     }
 }
@@ -44,12 +42,14 @@ export async function *optimize(problem: string): Optimization.Raw<string> {
 ### Evaluator
 
 ```ts
-import { Evaluation, Rejection, Opposition } from '@zimtsui/iterflow';
+import { Evaluation, Draft, Rejection, Opposition } from '@zimtsui/iterflow';
 import OpenAI from 'openai';
 declare const openai: OpenAI;
 
-export async function *evaluate(problem: string): Evaluation.Raw<string> {
-    let draft = yield new Evaluation.FirstYield();
+export async function *evaluate(problem: string): Evaluation.Generator<string, string, string> {
+    let input = yield;
+    if (input instanceof Draft) {} else throw new Error();
+    let draft = input;
     const messages: OpenAI.ChatCompletionMessageParam[] = [
         {
             role: 'system',
@@ -58,23 +58,29 @@ export async function *evaluate(problem: string): Evaluation.Raw<string> {
                 'Print only `ACCEPT` if it is correct.',
             ].join(' '),
         },
-        { role: 'user', content: `Problem: ${problem}\n\nAnswer: ${draft}` },
+        { role: 'user', content: `Problem: ${problem}\n\nAnswer: ${draft.extract()}` },
     ];
-    for (;;) try {
+    for (;;) {
         const completion = await openai.chat.completions.create({ model: 'gpt-4o', messages });
         messages.push(completion.choices[0]!.message);
-        if (completion.choices[0]!.message.content === 'ACCEPT') draft = yield draft;
-        else draft = yield new Rejection(completion.choices[0]!.message.content!);
-        messages.push({
-            role: 'user',
-            content: `The answer is updated: ${draft}\n\nPlease examine it again.`,
-        });
-    } catch (e) {
-        if (e instanceof Opposition) {} else throw e;
-        messages.push({
-            role: 'user',
-            content: `Your rejection is opposed: ${e.message}\n\nPlease examine it again.`,
-        });
+        const input = completion.choices[0]!.message.content === 'ACCEPT'
+            ? yield
+            : yield new Rejection(completion.choices[0]!.message.content!);
+
+        if (input instanceof Draft) {
+            const draft = input;
+            messages.push({
+                role: 'user',
+                content: `The answer is updated: ${draft.extract()}\n\nPlease examine it again.`,
+            });
+        } else if (input instanceof Opposition) {
+            const opposition = input;
+            messages.push({
+                role: 'user',
+                content: `Your rejection is opposed: ${opposition.extract()}\n\nPlease examine it again.`,
+            });
+        }
+        else throw new Error();
     }
 }
 ```
@@ -83,38 +89,24 @@ export async function *evaluate(problem: string): Evaluation.Raw<string> {
 
 ```ts
 import { Optimization, Evaluation, opteva, Rejection } from '@zimtsui/iterflow';
-import { optimize } from './optimize.ts';
-import { evaluate } from './evaluate.ts';
-const evaluate1: (problem: string) => Evaluation.Raw<string, string> = evaluate;
-declare const evaluate2: (problem: string) => Evaluation.Raw<string, number>;
-declare const evaluate3: (problem: string) => Evaluation.Raw<number, number>;
+declare function optimize(problem: string): Optimization.Generator<number, string, string>;
+declare function evaluateNumber(problem: string): Evaluation.Generator<number, string, string>;
+declare function stringifySolution(solution: number): Promise<string>;
+declare function evaluateString(problem: string): Evaluation.Generator<string, string, string>;
 
-export async function workflow(problem: string): Promise<number> {
-    await using optimization = Optimization.Cache.from(optimize(problem));
-    await using evaluation1 = await Evaluation.Initialized.from(evaluate1(problem));
-    await using evaluation2 = await Evaluation.Initialized.from(evaluate2(problem));
-    await using evaluation3 = await Evaluation.Initialized.from(evaluate3(problem));
+export async function workflow(problem: string): Promise<string> {
+    await using optimization = Optimization.from(optimize(problem));
+    await using numberEvaluation = await Evaluation.from(evaluateNumber(problem));
+    await using stringEvaluation = await Evaluation.from(evaluateString(problem));
     for (;;) try {
-        let snapshotString = Optimization.Snapshot.from(optimization);
-        snapshotString = await opteva(snapshotString, evaluation1);
-        let snapshotNumber = await opteva(snapshotString, evaluation2);
-        snapshotNumber = await opteva(snapshotNumber, evaluation3);
-        return await snapshotNumber.next().then(r => r.value);
+        const numberView = optimization;
+        await opteva(numberView, numberEvaluation);
+        const stringView = Optimization.map(numberView, stringifySolution);
+        await opteva(stringView, stringEvaluation);
+        const finalDraft = await stringView.repeat();
+        return finalDraft.extract();
     } catch (e) {
         if (e instanceof Rejection) {} else throw e;
     }
 };
-```
-
-## Subtypes
-
-```mermaid
-classDiagram
-
-Optimization <|.. Optimization.Cache
-Optimization.Raw <|.. Optimization
-class Optimization.Snapshot
-
-Evaluation.Raw <|.. Evaluation
-class Evaluation.Initialized
 ```
