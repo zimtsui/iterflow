@@ -3,9 +3,9 @@ import OpenAI from 'openai';
 declare const openai: OpenAI;
 
 export async function *evaluate(problem: string): Evaluation.Generator<string, string, string> {
-    let input = yield;
+    const input = yield;
     if (input instanceof Draft) {} else throw new Error();
-    let draft = input;
+    const draft = input;
     const messages: OpenAI.ChatCompletionMessageParam[] = [
         {
             role: 'system',
