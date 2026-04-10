@@ -2,6 +2,7 @@ import { Optimization, Draft, Opposition } from '@zimtsui/iterflow';
 import OpenAI from 'openai';
 declare const openai: OpenAI;
 
+
 export async function *optimize(problem: string): Optimization.Generator<string, string, string> {
     const messages: OpenAI.ChatCompletionMessageParam[] = [
         {

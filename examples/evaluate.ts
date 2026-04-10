@@ -2,10 +2,11 @@ import { Evaluation, Draft, Rejection, Opposition } from '@zimtsui/iterflow';
 import OpenAI from 'openai';
 declare const openai: OpenAI;
 
-export async function *evaluate(problem: string): Evaluation.Generator<string, string, string> {
+
+export async function *evaluate(problem: string): Evaluation.Generator<string, number, string, string> {
     const input = yield;
     if (input instanceof Draft) {} else throw new Error();
-    const draft = input;
+    let draft = input;
     const messages: OpenAI.ChatCompletionMessageParam[] = [
         {
             role: 'system',
@@ -20,11 +21,11 @@ export async function *evaluate(problem: string): Evaluation.Generator<string, s
         const completion = await openai.chat.completions.create({ model: 'gpt-4o', messages });
         messages.push(completion.choices[0]!.message);
         const input = completion.choices[0]!.message.content === 'ACCEPT'
-            ? yield
+            ? yield new Draft(Number.parseInt(draft.extract()))
             : yield new Rejection(completion.choices[0]!.message.content!);
 
         if (input instanceof Draft) {
-            const draft = input;
+            draft = input;
             messages.push({
                 role: 'user',
                 content: `The answer is updated: ${draft.extract()}\n\nPlease examine it again.`,
