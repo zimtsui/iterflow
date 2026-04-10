@@ -87,14 +87,14 @@ export namespace Optimization {
         ): Optimization.View<nextdraft, rejection, opposition> {
 
             async function* nextoptgen(): Optimization.Generator<nextdraft, rejection, opposition> {
-                let nextoutput: Draft<nextdraft> | Opposition<opposition> = new Draft(
+                let nextoutput: Draft<nextdraft> | Opposition<opposition> = Draft.from(
                     await f(await optview.repeat().then(r => r.extract())),
                 );
                 for (;;) {
                     const rejection: Rejection<rejection> = yield nextoutput;
                     const output = await optview.reject(rejection);
                     if (output instanceof Draft)
-                        nextoutput = new Draft(await f(output.extract()));
+                        nextoutput = Draft.from(await f(output.extract()));
                     else if (output instanceof Opposition)
                         nextoutput = output;
                     else throw new Error();
@@ -122,7 +122,7 @@ export namespace Optimization {
         ): Optimization.Snapshot<nextdraft, rejection, opposition> {
 
             async function* nextoptgen(): Optimization.Generator<nextdraft, rejection, opposition> {
-                let nextoutput: Draft<nextdraft> | Opposition<opposition> = new Draft(
+                let nextoutput: Draft<nextdraft> | Opposition<opposition> = Draft.from(
                     await f(await opt.repeat().then(r => r.extract())),
                 );
                 for (;;) {

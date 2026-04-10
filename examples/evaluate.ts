@@ -21,8 +21,8 @@ export async function *evaluate(problem: string): Evaluation.Generator<string, n
         const completion = await openai.chat.completions.create({ model: 'gpt-4o', messages });
         messages.push(completion.choices[0]!.message);
         const input = completion.choices[0]!.message.content === 'ACCEPT'
-            ? yield new Draft(Number.parseInt(draft.extract()))
-            : yield new Rejection(completion.choices[0]!.message.content!);
+            ? yield Draft.from(Number.parseInt(draft.extract()))
+            : yield Rejection.from(completion.choices[0]!.message.content!);
 
         if (input instanceof Draft) {
             draft = input;

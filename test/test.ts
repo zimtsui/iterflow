@@ -19,20 +19,20 @@ test('opteva throws rejection after optimizer produces a new draft', async t => 
     const events: Array<[string, string]> = [];
 
     async function* optimize(): Optimization.Generator<string, string, string> {
-        const rejection = yield new Draft('draft-1');
+        const rejection = yield Draft.from('draft-1');
         events.push(['optimizer.reject', rejection.extract()]);
-        let nextRejection = yield new Draft('draft-2');
+        let nextRejection = yield Draft.from('draft-2');
         for (;;)
-            nextRejection = yield new Draft(`draft-2:${nextRejection.extract()}`);
+            nextRejection = yield Draft.from(`draft-2:${nextRejection.extract()}`);
     }
 
     async function* evaluate(): Evaluation.Generator<string, string, string, string> {
         const draft = yield;
         events.push(['evaluation.submit', draft.extract()]);
-        let nextInput = yield new Rejection('needs-revision');
+        let nextInput = yield Rejection.from('needs-revision');
         for (;;) {
             if (nextInput instanceof Draft || nextInput instanceof Opposition) {} else throw new Error();
-            nextInput = yield new Draft(`accepted:${draft.extract()}`);
+            nextInput = yield Draft.from(`accepted:${draft.extract()}`);
         }
     }
 
@@ -60,23 +60,23 @@ test('opteva returns a snapshot after evaluator acceptance and snapshot reject r
     const events: Array<[string, string]> = [];
 
     async function* optimize(): Optimization.Generator<string, string, string> {
-        const firstRejection = yield new Draft('draft-1');
+        const firstRejection = yield Draft.from('draft-1');
         events.push(['optimizer.reject', firstRejection.extract()]);
-        let nextRejection = yield new Opposition('draft-1-is-correct');
+        let nextRejection = yield Opposition.from('draft-1-is-correct');
         events.push(['optimizer.reject', nextRejection.extract()]);
         for (;;)
-            nextRejection = yield new Draft(`draft-2:${nextRejection.extract()}`);
+            nextRejection = yield Draft.from(`draft-2:${nextRejection.extract()}`);
     }
 
     async function* evaluate(): Evaluation.Generator<string, number, string, string> {
         const draft = yield;
         events.push(['evaluation.submit', draft.extract()]);
-        const opposition = yield new Rejection('prove-it');
+        const opposition = yield Rejection.from('prove-it');
         events.push(['evaluation.oppose', opposition.extract()]);
-        let nextInput = yield new Draft(42);
+        let nextInput = yield Draft.from(42);
         for (;;) {
             if (nextInput instanceof Draft || nextInput instanceof Opposition) {} else throw new Error();
-            nextInput = yield new Draft(42);
+            nextInput = yield Draft.from(42);
         }
     }
 
@@ -87,7 +87,7 @@ test('opteva returns a snapshot after evaluator acceptance and snapshot reject r
         const snapshot = await opteva(optimization, evaluation);
 
         t.is((await snapshot.repeat()).extract(), 42);
-        await t.throwsAsync(snapshot.reject(new Rejection('needs-restart')), {
+        await t.throwsAsync(snapshot.reject(Rejection.from('needs-restart')), {
             instanceOf: Rejection,
         });
         t.deepEqual(events, [
@@ -106,11 +106,11 @@ test('Optimization.View.map keeps the last mapped draft across opposition', asyn
     const mappedInputs: number[] = [];
 
     async function* optimize(): Optimization.Generator<number, string, string> {
-        const firstRejection = yield new Draft(1);
-        const secondRejection = yield new Opposition(`oppose:${firstRejection.extract()}`);
-        let nextRejection = yield new Draft(secondRejection.extract().length);
+        const firstRejection = yield Draft.from(1);
+        const secondRejection = yield Opposition.from(`oppose:${firstRejection.extract()}`);
+        let nextRejection = yield Draft.from(secondRejection.extract().length);
         for (;;)
-            nextRejection = yield new Draft(nextRejection.extract().length);
+            nextRejection = yield Draft.from(nextRejection.extract().length);
     }
 
     const source = Optimization.from(optimize());
@@ -122,14 +122,14 @@ test('Optimization.View.map keeps the last mapped draft across opposition', asyn
     try {
         t.is((await mapped.repeat()).extract(), 'mapped:1');
 
-        const opposition = await mapped.reject(new Rejection('bad'));
+        const opposition = await mapped.reject(Rejection.from('bad'));
         t.true(opposition instanceof Opposition);
         t.is(opposition.extract(), 'oppose:bad');
 
         t.is((await mapped.repeat()).extract(), 'mapped:1');
         t.deepEqual(mappedInputs, [1]);
 
-        const draft = await mapped.reject(new Rejection('worse'));
+        const draft = await mapped.reject(Rejection.from('worse'));
         t.true(draft instanceof Draft);
         t.is(draft.extract(), 'mapped:5');
         t.deepEqual(mappedInputs, [1, 5]);
@@ -141,19 +141,19 @@ test('Optimization.View.map keeps the last mapped draft across opposition', asyn
 
 test('Optimization.Snapshot.map forwards opposition and rethrows restarts', async t => {
     async function* optimize(): Optimization.Generator<string, string, string> {
-        const firstRejection = yield new Draft('draft-1');
-        let nextRejection = yield new Opposition(`oppose:${firstRejection.extract()}`);
+        const firstRejection = yield Draft.from('draft-1');
+        let nextRejection = yield Opposition.from(`oppose:${firstRejection.extract()}`);
         for (;;)
-            nextRejection = yield new Draft(`draft-2:${nextRejection.extract()}`);
+            nextRejection = yield Draft.from(`draft-2:${nextRejection.extract()}`);
     }
 
     async function* evaluate(): Evaluation.Generator<string, number, string, string> {
         const draft = yield;
         if (draft instanceof Draft) {} else throw new Error();
-        let nextInput = yield new Draft(draft.extract().length);
+        let nextInput = yield Draft.from(draft.extract().length);
         for (;;) {
             if (nextInput instanceof Draft || nextInput instanceof Opposition) {} else throw new Error();
-            nextInput = yield new Draft(draft.extract().length);
+            nextInput = yield Draft.from(draft.extract().length);
         }
     }
 
@@ -165,7 +165,7 @@ test('Optimization.Snapshot.map forwards opposition and rethrows restarts', asyn
         const mapped = Optimization.Snapshot.map(snapshot, async n => `len:${n}`);
 
         t.is((await mapped.repeat()).extract(), 'len:7');
-        const opposition = await mapped.reject(new Rejection('restart'));
+        const opposition = await mapped.reject(Rejection.from('restart'));
         t.true(opposition instanceof Opposition);
         t.is(opposition.extract(), 'oppose:restart');
     } finally {
@@ -176,7 +176,7 @@ test('Optimization.Snapshot.map forwards opposition and rethrows restarts', asyn
 
 test('Optimization.from requires the first yield to be a draft', async t => {
     async function* optimize(): Optimization.Generator<string, string, string> {
-        yield new Opposition('not-a-draft');
+        yield Opposition.from('not-a-draft');
         throw new Error('unreachable');
     }
 
@@ -192,7 +192,7 @@ test('Optimization.from requires the first yield to be a draft', async t => {
 
 test('Evaluation.from requires the first yield to be void', async t => {
     async function* evaluate(): Evaluation.Generator<string, string, string, string> {
-        yield new Rejection('not-void');
+        yield Rejection.from('not-void');
         throw new Error('unreachable');
     }
 
@@ -202,7 +202,7 @@ test('Evaluation.from requires the first yield to be void', async t => {
 
 test('Evaluation.from rejects evaluators that yield a draft before first input', async t => {
     async function* evaluate(): Evaluation.Generator<string, string, string, string> {
-        yield new Draft('too-early');
+        yield Draft.from('too-early');
         throw new Error('unreachable');
     }
 
@@ -214,11 +214,11 @@ test('multiple evaluators restart from the first evaluator after a later rejecti
     const events: string[] = [];
 
     async function* optimize(): Optimization.Generator<number, string, string> {
-        let rejection = yield new Draft(1);
+        let rejection = yield Draft.from(1);
         let draft = 2;
         for (;;) {
             events.push(`optimizer.reject:${rejection.extract()}`);
-            rejection = yield new Draft(draft++);
+            rejection = yield Draft.from(draft++);
         }
     }
 
@@ -227,7 +227,7 @@ test('multiple evaluators restart from the first evaluator after a later rejecti
         for (;;) {
             if (input instanceof Draft) {} else throw new Error();
             events.push(`number.submit:${input.extract()}`);
-            input = yield new Draft(input.extract());
+            input = yield Draft.from(input.extract());
         }
     }
 
@@ -235,11 +235,11 @@ test('multiple evaluators restart from the first evaluator after a later rejecti
         let input = yield;
         if (input instanceof Draft) {} else throw new Error();
         events.push(`boolean.submit:${input.extract()}`);
-        input = yield new Rejection('boolean-reject');
+        input = yield Rejection.from('boolean-reject');
         for (;;) {
             if (input instanceof Draft) {} else throw new Error();
             events.push(`boolean.submit:${input.extract()}`);
-            input = yield new Draft(input.extract() % 2 === 0);
+            input = yield Draft.from(input.extract() % 2 === 0);
         }
     }
 

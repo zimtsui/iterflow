@@ -19,8 +19,8 @@ export async function *optimize(problem: string): Optimization.Generator<string,
         const completion = await openai.chat.completions.create({ model: 'gpt-4o', messages });
         messages.push(completion.choices[0]!.message);
         const rejection = completion.choices[0]!.message.content! === 'OPPOSE'
-            ? yield new Opposition('My answer is correct.')
-            : yield new Draft(completion.choices[0]!.message.content!);
+            ? yield Opposition.from('My answer is correct.')
+            : yield Draft.from(completion.choices[0]!.message.content!);
         messages.push({
             role: 'user',
             content: `Your answer is rejected: ${rejection.extract()}. Please revise your answer.`,
