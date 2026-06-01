@@ -1,4 +1,4 @@
-import { Evaluation, Draft, Rejection, Opposition } from '@zimtsui/iterflow';
+import { Evaluation, Draft, Critique, Rebuttal } from '@zimtsui/iterflow';
 import OpenAI from 'openai';
 declare const openai: OpenAI;
 
@@ -12,7 +12,7 @@ export async function *evaluate(problem: string): Evaluation.Generator<string, n
             role: 'system',
             content: [
                 'Please examine the given answer of the given math problem.',
-                'Print only `ACCEPT` if it is correct.',
+                'Print only `APPROVE` if it is correct.',
             ].join(' '),
         },
         { role: 'user', content: `Problem: ${problem}\n\nAnswer: ${draft.extract()}` },
@@ -20,9 +20,9 @@ export async function *evaluate(problem: string): Evaluation.Generator<string, n
     for (;;) {
         const completion = await openai.chat.completions.create({ model: 'gpt-4o', messages });
         messages.push(completion.choices[0]!.message);
-        const input = completion.choices[0]!.message.content === 'ACCEPT'
+        const input = completion.choices[0]!.message.content === 'APPROVE'
             ? yield Draft.from(Number.parseInt(draft.extract()))
-            : yield Rejection.from(completion.choices[0]!.message.content!);
+            : yield Critique.from(completion.choices[0]!.message.content!);
 
         if (input instanceof Draft) {
             draft = input;
@@ -30,11 +30,11 @@ export async function *evaluate(problem: string): Evaluation.Generator<string, n
                 role: 'user',
                 content: `The answer is updated: ${draft.extract()}\n\nPlease examine it again.`,
             });
-        } else if (input instanceof Opposition) {
-            const opposition = input;
+        } else if (input instanceof Rebuttal) {
+            const rebuttal = input;
             messages.push({
                 role: 'user',
-                content: `Your rejection is opposed: ${opposition.extract()}\n\nPlease examine it again.`,
+                content: `Your critique is challenged: ${rebuttal.extract()}\n\nPlease examine it again.`,
             });
         }
         else throw new Error();

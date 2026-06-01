@@ -1,4 +1,4 @@
-import { Optimization, Evaluation, opteva, Rejection } from '@zimtsui/iterflow';
+import { Optimization, Evaluation, opteva, Critique } from '@zimtsui/iterflow';
 declare function optimize(problem: string): Optimization.Generator<string, string, string>;
 declare function evaluate1(problem: string): Evaluation.Generator<string, void, string, string>;
 declare function evaluate2(problem: string): Evaluation.Generator<number, boolean, string, string>;
@@ -16,6 +16,6 @@ export async function workflow(problem: string): Promise<boolean> {
         const finalDraft = await booleanShot.repeat();
         return finalDraft.extract();
     } catch (e) {
-        if (e instanceof Rejection) {} else throw e;
+        if (e instanceof Critique) {} else throw e;
     }
 };

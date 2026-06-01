@@ -11,7 +11,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "test": "npm run build && ava ./test/test.ts",
+    "test": "npm run build && ava ./test/test.js",
     "build": "tsc -b ./src/tsconfig.json",
     "clean": "rm -rf ./build",
     "prepublishOnly": "npm run clean && npm run build"

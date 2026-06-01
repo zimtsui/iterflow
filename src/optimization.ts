@@ -1,10 +1,10 @@
-import { Draft, Rejection, Opposition } from './types.ts';
+import { Draft, Critique, Rebuttal } from './types.ts';
 
 
 
 export interface Optimization<
-    in out draft, in out rejection, in out opposition,
-> extends AsyncDisposable, Optimization.View<draft, rejection, opposition> {}
+    in out draft, in out critique, in out rebuttal,
+> extends AsyncDisposable, Optimization.View<draft, critique, rebuttal> {}
 
 
 export namespace Optimization {
@@ -13,26 +13,26 @@ export namespace Optimization {
      * First yield must be a draft.
      */
     export type Generator<
-        draft, rejection, opposition,
-    > = AsyncGenerator<Draft<draft> | Opposition<opposition>, never, Rejection<rejection>>;
+        draft, critique, rebuttal,
+    > = AsyncGenerator<Draft<draft> | Rebuttal<rebuttal>, never, Critique<critique>>;
 
 
     /**
      * @param optgen Ownership transferred.
      */
-    export function from<draft, rejection, opposition>(
-        optgen: Optimization.Generator<draft, rejection, opposition>,
-    ): Optimization<draft, rejection, opposition> {
+    export function from<draft, critique, rebuttal>(
+        optgen: Optimization.Generator<draft, critique, rebuttal>,
+    ): Optimization<draft, critique, rebuttal> {
         return new Instance(optgen);
     }
 
-    class Instance<in out draft, in out rejection, in out opposition> implements Optimization<draft, rejection, opposition> {
-        protected it: AsyncGenerator<Draft<draft> | Opposition<opposition>, never, Rejection<rejection> | void>;
+    class Instance<in out draft, in out critique, in out rebuttal> implements Optimization<draft, critique, rebuttal> {
+        protected it: AsyncGenerator<Draft<draft> | Rebuttal<rebuttal>, never, Critique<critique> | void>;
 
         /**
         * @param optgen Ownership transferred.
         */
-        public constructor(optgen: Optimization.Generator<draft, rejection, opposition>) {
+        public constructor(optgen: Optimization.Generator<draft, critique, rebuttal>) {
             this.it = Instance.iterate(optgen);
         }
 
@@ -42,8 +42,8 @@ export namespace Optimization {
             return output;
         }
 
-        public async reject(rejection: Rejection<rejection>): Promise<Draft<draft> | Opposition<opposition>> {
-            return await this.it.next(rejection).then(r => r.value);
+        public async reject(critique: Critique<critique>): Promise<Draft<draft> | Rebuttal<rebuttal>> {
+            return await this.it.next(critique).then(r => r.value);
         }
 
         public async [Symbol.asyncDispose](): Promise<void> {
@@ -53,16 +53,16 @@ export namespace Optimization {
         /**
          * @param optgen Ownership transferred.
          */
-        protected static async *iterate<draft, rejection, opposition>(
-            optgen: Optimization.Generator<draft, rejection, opposition>,
-        ): AsyncGenerator<Draft<draft> | Opposition<opposition>, never, Rejection<rejection> | void> {
+        protected static async *iterate<draft, critique, rebuttal>(
+            optgen: Optimization.Generator<draft, critique, rebuttal>,
+        ): AsyncGenerator<Draft<draft> | Rebuttal<rebuttal>, never, Critique<critique> | void> {
             try {
                 let output = await optgen.next().then(r => r.value);
                 if (output instanceof Draft) {} else throw new Error();
                 let draft = output;
                 for (;;) {
-                    const input: Rejection<rejection> | void = yield output;
-                    if (input instanceof Rejection) {
+                    const input: Critique<critique> | void = yield output;
+                    if (input instanceof Critique) {
                         output = await optgen.next(input).then(r => r.value);
                         if (output instanceof Draft) draft = output;
                     } else
@@ -75,27 +75,27 @@ export namespace Optimization {
     }
 
 
-    export interface View<in out draft, in out rejection, in out opposition> {
+    export interface View<in out draft, in out critique, in out rebuttal> {
         repeat(): Promise<Draft<draft>>;
-        reject(rejection: Rejection<rejection>): Promise<Draft<draft> | Opposition<opposition>>;
+        reject(critique: Critique<critique>): Promise<Draft<draft> | Rebuttal<rebuttal>>;
     }
     export namespace View {
 
-        export function map<draft, nextdraft, rejection, opposition>(
-            optview: Optimization.View<draft, rejection, opposition>,
+        export function map<draft, nextdraft, critique, rebuttal>(
+            optview: Optimization.View<draft, critique, rebuttal>,
             f: (draft: draft) => Promise<nextdraft>,
-        ): Optimization.View<nextdraft, rejection, opposition> {
+        ): Optimization.View<nextdraft, critique, rebuttal> {
 
-            async function* nextoptgen(): Optimization.Generator<nextdraft, rejection, opposition> {
-                let nextoutput: Draft<nextdraft> | Opposition<opposition> = Draft.from(
+            async function* nextoptgen(): Optimization.Generator<nextdraft, critique, rebuttal> {
+                let nextoutput: Draft<nextdraft> | Rebuttal<rebuttal> = Draft.from(
                     await f(await optview.repeat().then(r => r.extract())),
                 );
                 for (;;) {
-                    const rejection: Rejection<rejection> = yield nextoutput;
-                    const output = await optview.reject(rejection);
+                    const critique: Critique<critique> = yield nextoutput;
+                    const output = await optview.reject(critique);
                     if (output instanceof Draft)
                         nextoutput = Draft.from(await f(output.extract()));
-                    else if (output instanceof Opposition)
+                    else if (output instanceof Rebuttal)
                         nextoutput = output;
                     else throw new Error();
                 }
@@ -105,37 +105,37 @@ export namespace Optimization {
     }
 
     export interface Snapshot<
-        in out draft, in out rejection, in out opposition,
-    > extends Optimization.View<draft, rejection, opposition> {
+        in out draft, in out critique, in out rebuttal,
+    > extends Optimization.View<draft, critique, rebuttal> {
         repeat(): Promise<Draft<draft>>;
         /**
-         * @throws {@link Rejection}
+         * @throws {@link Critique}
          */
-        reject(rejection: Rejection<rejection>): Promise<Opposition<opposition>>;
+        reject(critique: Critique<critique>): Promise<Rebuttal<rebuttal>>;
     }
 
     export namespace Snapshot {
 
-        export function map<draft, nextdraft, rejection, opposition>(
-            opt: Optimization.Snapshot<draft, rejection, opposition> | Optimization.View<draft, rejection, opposition>,
+        export function map<draft, nextdraft, critique, rebuttal>(
+            opt: Optimization.Snapshot<draft, critique, rebuttal> | Optimization.View<draft, critique, rebuttal>,
             f: (draft: draft) => Promise<nextdraft>,
-        ): Optimization.Snapshot<nextdraft, rejection, opposition> {
+        ): Optimization.Snapshot<nextdraft, critique, rebuttal> {
 
-            async function* nextoptgen(): Optimization.Generator<nextdraft, rejection, opposition> {
-                let nextoutput: Draft<nextdraft> | Opposition<opposition> = Draft.from(
+            async function* nextoptgen(): Optimization.Generator<nextdraft, critique, rebuttal> {
+                let nextoutput: Draft<nextdraft> | Rebuttal<rebuttal> = Draft.from(
                     await f(await opt.repeat().then(r => r.extract())),
                 );
                 for (;;) {
-                    const rejection: Rejection<rejection> = yield nextoutput;
-                    const output = await opt.reject(rejection);
+                    const critique: Critique<critique> = yield nextoutput;
+                    const output = await opt.reject(critique);
                     if (output instanceof Draft)
-                        throw rejection;
-                    else if (output instanceof Opposition)
+                        throw critique;
+                    else if (output instanceof Rebuttal)
                         nextoutput = output;
                     else throw new Error();
                 }
             }
-            return Optimization.from(nextoptgen()) as Optimization.Snapshot<nextdraft, rejection, opposition>;
+            return Optimization.from(nextoptgen()) as Optimization.Snapshot<nextdraft, critique, rebuttal>;
         }
     }
 }

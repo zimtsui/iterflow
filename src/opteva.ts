@@ -1,4 +1,4 @@
-import { Draft, Rejection, Opposition } from './types.ts';
+import { Draft, Critique, Rebuttal } from './types.ts';
 import { Optimization } from './optimization.ts';
 import { Evaluation } from './evaluation.ts';
 
@@ -6,35 +6,35 @@ import { Evaluation } from './evaluation.ts';
 
 
 /**
- * @throws {@link Rejection}
+ * @throws {@link Critique}
  */
-export async function opteva<draft, nextdraft, rejection, opposition>(
-    opt: Optimization.View<draft, rejection, opposition> | Optimization.Snapshot<draft, rejection, opposition>,
-    eva: Evaluation<draft, nextdraft, rejection, opposition>,
-): Promise<Optimization.Snapshot<nextdraft, rejection, opposition>> {
+export async function opteva<draft, nextdraft, critique, rebuttal>(
+    opt: Optimization.View<draft, critique, rebuttal> | Optimization.Snapshot<draft, critique, rebuttal>,
+    eva: Evaluation<draft, nextdraft, critique, rebuttal>,
+): Promise<Optimization.Snapshot<nextdraft, critique, rebuttal>> {
     let draft = await opt.repeat();
     let evaoutput = await eva.submit(draft)
-    for (; evaoutput instanceof Rejection;) {
-        const rejection = evaoutput;
-        const optoutput = await opt.reject(rejection);
-        if (optoutput instanceof Opposition) {
-            evaoutput = await eva.oppose(optoutput);
+    for (; evaoutput instanceof Critique;) {
+        const critique = evaoutput;
+        const optoutput = await opt.reject(critique);
+        if (optoutput instanceof Rebuttal) {
+            evaoutput = await eva.challenge(optoutput);
         } else if (optoutput instanceof Draft) {
-            throw rejection;
+            throw critique;
         }
     }
 
-    let nextoutput: Draft<nextdraft> | Opposition<opposition> = evaoutput;
-    async function *nextgen(): Optimization.Generator<nextdraft, rejection, opposition> {
+    let nextoutput: Draft<nextdraft> | Rebuttal<rebuttal> = evaoutput;
+    async function *nextgen(): Optimization.Generator<nextdraft, critique, rebuttal> {
         for (;;) {
-            const rejection: Rejection<rejection> = yield nextoutput;
-            const output = await opt.reject(rejection);
+            const critique: Critique<critique> = yield nextoutput;
+            const output = await opt.reject(critique);
             if (output instanceof Draft)
-                throw rejection;
-            else if (output instanceof Opposition)
+                throw critique;
+            else if (output instanceof Rebuttal)
                 nextoutput = output;
             else throw new Error();
         }
     }
-    return Optimization.from(nextgen()) as Optimization.Snapshot<nextdraft, rejection, opposition>;
+    return Optimization.from(nextgen()) as Optimization.Snapshot<nextdraft, critique, rebuttal>;
 }

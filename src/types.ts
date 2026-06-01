@@ -16,7 +16,7 @@ export class Draft<T> {
     }
 }
 
-export class Rejection<T> extends Error {
+export class Critique<T> extends Error {
     protected declare [NOMINAL]: never;
     protected constructor(public override cause: T) {
         super();
@@ -27,14 +27,14 @@ export class Rejection<T> extends Error {
     public extract(): T {
         return this.cause;
     }
-    public static from<T>(value: T): Rejection<T>;
-    public static from(): Rejection<void>;
-    public static from<T>(value?: T): Rejection<T> {
-        return new Rejection(value as T);
+    public static from<T>(value: T): Critique<T>;
+    public static from(): Critique<void>;
+    public static from<T>(value?: T): Critique<T> {
+        return new Critique(value as T);
     }
 }
 
-export class Opposition<T> extends Error {
+export class Rebuttal<T> extends Error {
     protected declare [NOMINAL]: never;
     protected constructor(public override cause: T) {
         super();
@@ -45,9 +45,9 @@ export class Opposition<T> extends Error {
     public extract(): T {
         return this.cause;
     }
-    public static from<T>(value: T): Opposition<T>;
-    public static from(): Opposition<void>;
-    public static from<T>(value?: T): Opposition<T> {
-        return new Opposition(value as T);
+    public static from<T>(value: T): Rebuttal<T>;
+    public static from(): Rebuttal<void>;
+    public static from<T>(value?: T): Rebuttal<T> {
+        return new Rebuttal(value as T);
     }
 }
