@@ -1,4 +1,4 @@
-# debateflow
+# Debateflow
 
 [![Npm package version](https://img.shields.io/npm/v/@zimtsui/debateflow?style=flat-square)](https://www.npmjs.com/package/@zimtsui/debateflow)
 
