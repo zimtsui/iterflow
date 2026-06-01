@@ -1,4 +1,4 @@
-import { Optimization, Evaluation, opteva, Critique } from '@zimtsui/iterflow';
+import { Optimization, Evaluation, opteva, Critique } from '@zimtsui/debateflow';
 declare function optimize(problem: string): Optimization.Generator<string, string, string>;
 declare function evaluate1(problem: string): Evaluation.Generator<string, void, string, string>;
 declare function evaluate2(problem: string): Evaluation.Generator<number, boolean, string, string>;

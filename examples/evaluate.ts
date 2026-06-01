@@ -1,4 +1,4 @@
-import { Evaluation, Draft, Critique, Rebuttal } from '@zimtsui/iterflow';
+import { Evaluation, Draft, Critique, Rebuttal } from '@zimtsui/debateflow';
 import OpenAI from 'openai';
 declare const openai: OpenAI;
 

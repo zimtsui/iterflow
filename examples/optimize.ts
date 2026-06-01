@@ -1,4 +1,4 @@
-import { Optimization, Draft, Rebuttal } from '@zimtsui/iterflow';
+import { Optimization, Draft, Rebuttal } from '@zimtsui/debateflow';
 import OpenAI from 'openai';
 declare const openai: OpenAI;
 

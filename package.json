@@ -1,11 +1,11 @@
 {
-  "name": "@zimtsui/iterflow",
+  "name": "@zimtsui/debateflow",
   "version": "0.0.12",
   "exports": "./build/exports.js",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zimtsui/iterflow.git"
+    "url": "git+https://github.com/zimtsui/debateflow.git"
   },
   "engines": {
     "node": ">=24"
